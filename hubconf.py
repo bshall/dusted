@@ -43,8 +43,8 @@ def hubert(language: str = "english", pretrained: bool = True, progress: bool = 
         checkpoint = torch.hub.load_state_dict_from_url(
             URLS["hubert"][language], progress=progress
         )
-        consume_prefix_in_state_dict_if_present(checkpoint["hubert"], "module.")
-        model.load_state_dict(checkpoint["hubert"])
+        consume_prefix_in_state_dict_if_present(checkpoint, "module.")
+        model.load_state_dict(checkpoint)
         model.eval()
     return model, encode
 
