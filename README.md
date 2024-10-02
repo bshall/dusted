@@ -1,6 +1,7 @@
 # DUSTED: Spoken-Term Discovery using Discrete Speech Units
 
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2408.14390)
+[![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/bshall/dusted/blob/main/demo.ipynb)
 
 Official repository for [Spoken-Term Discovery using Discrete Speech Units](https://arxiv.org/abs/2408.14390).
 
@@ -38,7 +39,7 @@ hubert.cuda()
 kmeans, segment = torch.hub.load("bshall/dusted:main", "kmeans", language="english", trust_repo=True)
 
 # Load the similarity function and pattern matcher
-sim, match = torch.hub.load("bshall/dusted:main", "kmeans", trust_repo=True)
+sim, match = torch.hub.load("bshall/dusted:main", "dusted", trust_repo=True)
 
 # Load the pair of audio clips
 xwav, sr = torchaudio.load("path/to/xwav")
@@ -56,7 +57,7 @@ xcodes, xboundaries = segment(x, kmeans.cluster_centers_, gamma=0.2)
 ycodes, yboundaries = segment(y, kmeans.cluster_centers_, gamma=0.2)
 
 # Search for matching unit sub-sequences
-for path, a, b, similarity in match_rescore(xcodes, ycodes, sim, gap=1, threshold=6):
+for path, a, b, similarity in match(xcodes, ycodes, sim, gap=1, threshold=6):
     # Find start and end times of the matching sub-sequences
     a0 = round(xboundaries[a0 - 1] * 0.02, 2)
     an = round(xboundaries[an] * 0.02, 2)

@@ -82,4 +82,5 @@ def dusted() -> Tuple[np.ndarray, Callable]:
         Callable: the dynamic programming algorithm to find matching unit sub-sequences.
     """
     sim = np.full((100, 100), -1, dtype=np.float32)
+    np.fill_diagonal(sim, 1)
     return sim, match_rescore
