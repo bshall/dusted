@@ -65,3 +65,159 @@ for path, a, b, similarity in match(xcodes, ycodes, sim, gap=1, threshold=6):
     bn = round(yboundaries[bn] * 0.02, 2)
     # Write to file (or other processing)
 ```
+
+### Script-Based Usage
+
+#### Step 1: Extract HuBERT Features
+
+We recommend applying VAD to the audio dataset before the content encoding and pattern matching steps.
+
+```
+usage: encode.py [-h] [--layer LAYER] [--extension EXTENSION]
+                 in-dir out-dir {english,chinese,french}
+
+Encode an audio dataset using HuBERT.
+
+positional arguments:
+  in-dir                path to the dataset directory.
+  out-dir               path to the output directory.
+  {english,chinese,french}
+                        pre-training language of the HuBERT content encoder.
+
+options:
+  -h, --help            show this help message and exit
+  --layer LAYER         HuBERT layer to extract features from (defaults to 7).
+  --extension EXTENSION
+                        extension of the audio files (defaults to .wav).
+
+```
+
+#### Step 2: Segment the Features into Longer Units
+
+```
+usage: segment.py [-h] [--gamma GAMMA] [--processes PROCESSES]
+                  in-dir out-dir {english,chinese,french}
+
+Segment an audio dataset into phone-like units.
+
+positional arguments:
+  in-dir                path to the speech features.
+  out-dir               path to the output directory.
+  {english,chinese,french}
+                        pre-training language of the HuBERT content encoder.
+
+options:
+  -h, --help            show this help message and exit
+  --gamma GAMMA         regularization weight for segmentation (defaults to
+                        0.2).
+  --processes PROCESSES
+                        number of processes (defaults to 10).
+```
+
+#### Step 3: Find Matching Unit Sub-sequences
+
+```
+usage: match.py [-h] [--gap GAP] [--threshold THRESHOLD]
+                [--min_duration MIN_DURATION] [--processes PROCESSES]
+                [--chunksize CHUNKSIZE]
+                segments-dir out-path
+
+Find matching audio fragments in a dataset.
+
+positional arguments:
+  segments-dir          path to the directory of segmented audio.
+  out-path              path to the output csv.
+
+options:
+  -h, --help            show this help message and exit
+  --gap GAP             gap cost.
+  --threshold THRESHOLD
+                        minimum score required for a match (defaults to 6).
+  --min_duration MIN_DURATION
+                        minimum duration required for a match (defaults to 0.2
+                        seconds)
+  --processes PROCESSES
+                        number of processes (defaults to 10).
+  --chunksize CHUNKSIZE
+                        multiprocessing chunksize (defaults to 200).
+```
+
+## Applying DUSTED to the ZeroSpeech Challenge
+
+1. Install the Zerospeech benchmark toolkit:
+
+```
+pip install zerospeech-benchmarks[all]
+```
+
+2. Download the Zerospeech 2017 datasets:
+
+```
+zrc datasets:pull zrc2017-test-dataset
+zrc datasets:pull zrc2017-train-dataset
+```
+
+3. Split the dataset by the provided VAD marks using the `preprocess` script:
+```
+usage: preprocess.py [-h] in-dir out-dir vad-path
+
+Preprocess the ZeroSpeech 2017 datasets by splitting the audio according to
+the vad marks.
+
+positional arguments:
+  in-dir      path to the dataset directory.
+  out-dir     path to the output directory.
+  vad-path    path to the VAD csv.
+
+options:
+  -h, --help  show this help message and exit
+
+```
+
+4. Extract HuBERT features using the `encode` script (see above).
+
+5. Segment the HuBERT features into longer units using the `segment` script.
+
+6. Search for matching unit subsequences using the `match` script.
+
+7. Download and extract the `submission` folder [here](https://github.com/bshall/dusted/releases/download/v0.1/submission.zip). Since the toolkit requires all languages for validation this folder contains dummy files to allow you to evaluate just a single language instead.
+
+8. Format the `pairs.csv` file for evaluation using the `format` script (note this requires python 3.12):
+```
+usage: format.py [-h] [--threshold THRESHOLD] pairs-path submission-path
+
+Format the csv of pairs for evaluation.
+
+positional arguments:
+  pairs-path            path to the csv of pairs.
+  submission-path       path to the txt file for submission.
+
+options:
+  -h, --help            show this help message and exit
+  --threshold THRESHOLD
+                        the threshold for including a pair (defaults to 6)
+```
+
+9. Run the Zerospeech evaluation:
+```
+zrc benchmarks:run tde17 path/to/submission/
+```
+The results will be output to `path/to/submission/scores/scores.json`.
+
+The grouping metric can take a long time to run and can use up a lot or memory so you can skip it by hitting `ctrl+c` when you see `computing grouping for english...`
+
+10. We also include the `cluster.py` script to train a k-means model on your own data:
+```
+usage: cluster.py [-h] [--clusters CLUSTERS] [--hours HOURS] in-dir out-path
+
+Cluster HuBERT features.
+
+positional arguments:
+  in-dir               path to the speech features.
+  out-path             path to the output checkpoint
+
+options:
+  -h, --help           show this help message and exit
+  --clusters CLUSTERS  number of clusters.
+  --hours HOURS        number of hours of speech to use (defaults to 5).
+```
